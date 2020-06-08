@@ -1,0 +1,13 @@
+[package]
+name = "phosphorus"
+version = "0.1.0"
+authors = ["emrsmsrli <emrsmsrli1@gmail.com>"]
+edition = "2018"
+description = "A simple raytracer engine"
+readme = "README.md"
+license-file = "LICENCE"
+keywords = ["graphics", "raytracer", "renderer"]
+
+[dependencies]
+clap = "3.0.0-beta.1"
+imgui = "0.4.0"
