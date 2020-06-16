@@ -17,8 +17,10 @@ const FOCAL_LENGTH: f64 = 1.0;
 
 fn ray_color(r: &Ray) -> ppm::Color {
     let sphere = Sphere { center: Point3::new(0.0, 0.0, -1.0), radius: 0.5 };
-    if sphere.hit(r) {
-        return ppm::Color::new(1.0, 0.0, 0.0);
+    let t = sphere.hit(r);
+    if t > 0.0 {
+        let n = (r.at(t).coords - Vector3::new(0.0, 0.0, -1.0)).normalize();
+        return ppm::Color::new(n[0] + 1.0, n[1] + 1.0, n[2] + 1.0) * 0.5;
     }
 
     let unit_direction = r.direction.normalize();
