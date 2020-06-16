@@ -1,11 +1,14 @@
 mod ppm;
 mod ray;
 mod hittable;
+mod world;
 
 use std::path::Path;
 use nalgebra::{Point3, Vector3};
-use ray::Ray;
-use hittable::Hittable::Sphere;
+use crate::ray::Ray;
+use crate::hittable::Object::Sphere;
+use crate::hittable::Hittable;
+use crate::world::World;
 
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 const W: usize = 384;
@@ -15,22 +18,26 @@ const VIEWPORT_HEIGHT: f64 = 2.0;
 const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
 const FOCAL_LENGTH: f64 = 1.0;
 
-fn ray_color(r: &Ray) -> ppm::Color {
-    let sphere = Sphere { center: Point3::new(0.0, 0.0, -1.0), radius: 0.5 };
-    let t = sphere.hit(r);
-    if t > 0.0 {
-        let n = (r.at(t).coords - Vector3::new(0.0, 0.0, -1.0)).normalize();
-        return ppm::Color::new(n[0] + 1.0, n[1] + 1.0, n[2] + 1.0) * 0.5;
+fn ray_color(ray: &Ray, world: &World) -> ppm::Color {
+    if let Some(hit_record) = world.hit(ray, 0.0, f64::INFINITY) {
+        return ppm::Color::new(
+            hit_record.normal[0] + 1.0,
+            hit_record.normal[1] + 1.0,
+            hit_record.normal[2] + 1.0) * 0.5;
     }
 
-    let unit_direction = r.direction.normalize();
+    let unit_direction = ray.direction.normalize();
     let t = 0.5 * (unit_direction[1] + 1.0);
-    return ppm::Color::new(1.0, 1.0, 1.0) * (1.0 - t)
-        + ppm::Color::new(0.5, 0.7, 1.0) * t;
+    ppm::Color::new(1.0, 1.0, 1.0) * (1.0 - t)
+        + ppm::Color::new(0.5, 0.7, 1.0) * t
 }
 
 fn main() {
     let mut ppm = ppm::Writer::new(W, H);
+    let mut world = World::new();
+
+    world.add(Sphere { center: Point3::new(0.0, 0.0, -1.0), radius: 0.5 });
+    world.add(Sphere { center: Point3::new(0.0, -100.5, -1.0), radius: 100.0 });
 
     let origin = Point3::origin();
     let horizontal = Vector3::new(VIEWPORT_WIDTH, 0.0, 0.0);
@@ -43,7 +50,7 @@ fn main() {
             let v = y as f64 / (H - 1) as f64;
 
             let ray = Ray::new(origin, lower_left_corner + u * horizontal + v * vertical - origin);
-            ppm[(x, H - y - 1)] = ray_color(&ray);
+            ppm[(x, H - y - 1)] = ray_color(&ray, &world);
         }
     }
 
