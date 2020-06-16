@@ -11,3 +11,6 @@ keywords = ["graphics", "raytracer", "renderer"]
 [dependencies]
 clap = "3.0.0-beta.1"
 imgui = "0.4.0"
+nalgebra = "0.21.1"
+gfx = "0.18.2"
+png = "0.16.4"
