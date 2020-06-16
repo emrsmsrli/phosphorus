@@ -18,14 +18,32 @@ use crate::ppm::Color;
 const W: usize = 384;
 const H: usize = (W as f64 / ASPECT_RATIO) as usize;
 
-fn ray_color(ray: &Ray, world: &World) -> ppm::Color {
-    if let Some(hit_record) = world.hit(ray, 0.0, f64::INFINITY) {
-        return ppm::Color::new(
-            hit_record.normal[0] + 1.0,
-            hit_record.normal[1] + 1.0,
-            hit_record.normal[2] + 1.0) * 0.5;
+fn random_point_in_unit_sphere(rng: &mut impl Rng) -> Point3<f64> {
+    loop {
+        let p = Point3::<f64>::new(
+            rng.gen_range(-1.0, 1.0),
+            rng.gen_range(-1.0, 1.0),
+            rng.gen_range(-1.0, 1.0)
+        );
+
+        if p.coords.norm() < 1.0 {
+            return p;
+        }
+    }
+}
+
+fn ray_color(rng: &mut impl Rng, ray: &Ray, world: &World, depth: i32) -> ppm::Color {
+    if depth <= 0 {
+        return ppm::Color::new(0.0, 0.0, 0.0);
     }
 
+    if let Some(hit_record) = world.hit(ray, 0.0, f64::INFINITY) {
+        let target = hit_record.location + random_point_in_unit_sphere(rng).coords + hit_record.normal;
+        let new_ray = Ray::new(hit_record.location, target - hit_record.location);
+        return ray_color(rng, &new_ray, world, depth - 1) * 0.5;
+    }
+
+    // background
     let unit_direction = ray.direction.normalize();
     let t = 0.5 * (unit_direction[1] + 1.0);
     ppm::Color::new(1.0, 1.0, 1.0) * (1.0 - t)
@@ -33,6 +51,7 @@ fn ray_color(ray: &Ray, world: &World) -> ppm::Color {
 }
 
 const SAMPLES_PER_PIXEL: u32 = 100;
+const MAX_DEPTH: i32 = 100;
 
 fn main() {
     let camera = Camera::new();
@@ -50,7 +69,7 @@ fn main() {
                 let u = (x as f64 + rand.gen_range(0.0, 1.0)) / (W - 1) as f64;
                 let v = (y as f64 + rand.gen_range(0.0, 1.0)) / (H - 1) as f64;
                 let ray = camera.new_ray(u, v);
-                color = color + ray_color(&ray, &world);
+                color = color + ray_color(&mut rand, &ray, &world, MAX_DEPTH);
             }
 
             ppm[(x, H - y - 1)] = color / SAMPLES_PER_PIXEL as f64;
