@@ -29,6 +29,14 @@ impl ops::Add<Color> for Color {
     }
 }
 
+impl ops::Div<f64> for Color {
+    type Output = Color;
+
+    fn div(self, rhs: f64) -> Self::Output {
+        Color::new(self.r / rhs, self.g  / rhs, self.b / rhs)
+    }
+}
+
 pub struct Writer {
     data: Vec<Color>,
     width: usize,
