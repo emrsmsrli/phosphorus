@@ -72,7 +72,13 @@ fn main() {
                 color = color + ray_color(&mut rand, &ray, &world, MAX_DEPTH);
             }
 
-            ppm[(x, H - y - 1)] = color / SAMPLES_PER_PIXEL as f64;
+            // gamma correction
+            const GAMMA_SCALE: f64 = 1.0 / SAMPLES_PER_PIXEL as f64;
+            ppm[(x, H - y - 1)] = ppm::Color::new(
+                (color.r * GAMMA_SCALE).sqrt(),
+                (color.g * GAMMA_SCALE).sqrt(),
+                (color.b * GAMMA_SCALE).sqrt(),
+            );
         }
     }
 
