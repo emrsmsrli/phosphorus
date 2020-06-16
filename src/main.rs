@@ -5,7 +5,7 @@ mod world;
 mod camera;
 
 use std::path::Path;
-use nalgebra::Point3;
+use nalgebra::{Point3, Vector3};
 use rand::Rng;
 
 use crate::ray::Ray;
@@ -18,18 +18,11 @@ use crate::ppm::Color;
 const W: usize = 384;
 const H: usize = (W as f64 / ASPECT_RATIO) as usize;
 
-fn random_point_in_unit_sphere(rng: &mut impl Rng) -> Point3<f64> {
-    loop {
-        let p = Point3::<f64>::new(
-            rng.gen_range(-1.0, 1.0),
-            rng.gen_range(-1.0, 1.0),
-            rng.gen_range(-1.0, 1.0)
-        );
-
-        if p.coords.norm() < 1.0 {
-            return p;
-        }
-    }
+fn random_vector_in_unit_sphere(rng: &mut impl Rng) -> Vector3<f64> {
+    let a = rng.gen_range(0.0, 2.0 * std::f64::consts::PI);
+    let z = rng.gen_range(-1.0f64, 1.0);
+    let r = (1.0 - z * z).sqrt();
+    Vector3::new(r * a.cos(), r * a.sin(), z)
 }
 
 fn ray_color(rng: &mut impl Rng, ray: &Ray, world: &World, depth: i32) -> ppm::Color {
@@ -37,8 +30,8 @@ fn ray_color(rng: &mut impl Rng, ray: &Ray, world: &World, depth: i32) -> ppm::C
         return ppm::Color::new(0.0, 0.0, 0.0);
     }
 
-    if let Some(hit_record) = world.hit(ray, 0.0, f64::INFINITY) {
-        let target = hit_record.location + random_point_in_unit_sphere(rng).coords + hit_record.normal;
+    if let Some(hit_record) = world.hit(ray, 0.001, f64::INFINITY) {
+        let target = hit_record.location + random_vector_in_unit_sphere(rng) + hit_record.normal;
         let new_ray = Ray::new(hit_record.location, target - hit_record.location);
         return ray_color(rng, &new_ray, world, depth - 1) * 0.5;
     }
