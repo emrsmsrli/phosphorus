@@ -6,6 +6,7 @@ pub struct Ray {
 }
 
 impl Ray {
+    #[allow(dead_code)]
     pub fn at(&self, t: f64) -> Point3<f64> {
         &self.origin + &self.direction * t
     }

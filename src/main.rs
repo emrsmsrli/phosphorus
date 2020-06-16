@@ -1,9 +1,11 @@
 mod ppm;
 mod ray;
+mod hittable;
 
 use std::path::Path;
-use ray::Ray;
 use nalgebra::{Point3, Vector3};
+use ray::Ray;
+use hittable::Hittable::Sphere;
 
 const ASPECT_RATIO: f64 = 16.0 / 9.0;
 const W: usize = 384;
@@ -14,6 +16,11 @@ const VIEWPORT_WIDTH: f64 = ASPECT_RATIO * VIEWPORT_HEIGHT;
 const FOCAL_LENGTH: f64 = 1.0;
 
 fn ray_color(r: &Ray) -> ppm::Color {
+    let sphere = Sphere { center: Point3::new(0.0, 0.0, -1.0), radius: 0.5 };
+    if sphere.hit(r) {
+        return ppm::Color::new(1.0, 0.0, 0.0);
+    }
+
     let unit_direction = r.direction.normalize();
     let t = 0.5 * (unit_direction[1] + 1.0);
     return ppm::Color::new(1.0, 1.0, 1.0) * (1.0 - t)
