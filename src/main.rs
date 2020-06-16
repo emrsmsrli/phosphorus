@@ -25,13 +25,22 @@ fn random_vector_in_unit_sphere(rng: &mut impl Rng) -> Vector3<f64> {
     Vector3::new(r * a.cos(), r * a.sin(), z)
 }
 
+fn random_in_hemisphere(rng: &mut impl Rng, normal: &Vector3<f64>) -> Vector3<f64> {
+    let in_unit_sphere = random_vector_in_unit_sphere(rng);
+    if in_unit_sphere.dot(normal) > 0.0 { // In the same hemisphere as the normal
+        in_unit_sphere
+    } else {
+        -in_unit_sphere
+    }
+}
+
 fn ray_color(rng: &mut impl Rng, ray: &Ray, world: &World, depth: i32) -> ppm::Color {
     if depth <= 0 {
         return ppm::Color::new(0.0, 0.0, 0.0);
     }
 
     if let Some(hit_record) = world.hit(ray, 0.001, f64::INFINITY) {
-        let target = hit_record.location + random_vector_in_unit_sphere(rng) + hit_record.normal;
+        let target = hit_record.location + random_in_hemisphere(rng, &hit_record.normal);
         let new_ray = Ray::new(hit_record.location, target - hit_record.location);
         return ray_color(rng, &new_ray, world, depth - 1) * 0.5;
     }
