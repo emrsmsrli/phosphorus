@@ -1,6 +1,6 @@
 use std::{self, ops, path::Path, fs::File, io::Write};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Color {
     pub r: f64,
     pub g: f64,
@@ -18,6 +18,14 @@ impl ops::Mul<f64> for Color {
 
     fn mul(self, rhs: f64) -> Self::Output {
         Color::new(self.r * rhs, self.g * rhs, self.b * rhs)
+    }
+}
+
+impl ops::Mul<Color> for Color {
+    type Output = Color;
+
+    fn mul(self, rhs: Color) -> Self::Output {
+        Color::new(self.r * rhs.r, self.g * rhs.g, self.b * rhs.b)
     }
 }
 

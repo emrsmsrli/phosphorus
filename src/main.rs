@@ -3,9 +3,10 @@ mod ray;
 mod hittable;
 mod world;
 mod camera;
+mod material;
 
 use std::path::Path;
-use nalgebra::{Point3, Vector3};
+use nalgebra::Point3;
 use rand::Rng;
 
 use crate::ray::Ray;
@@ -14,35 +15,22 @@ use crate::hittable::Hittable;
 use crate::world::World;
 use crate::camera::{ASPECT_RATIO, Camera};
 use crate::ppm::Color;
+use crate::material::Material;
 
-const W: usize = 384;
+const W: usize = 720;
 const H: usize = (W as f64 / ASPECT_RATIO) as usize;
-
-fn random_vector_in_unit_sphere(rng: &mut impl Rng) -> Vector3<f64> {
-    let a = rng.gen_range(0.0, 2.0 * std::f64::consts::PI);
-    let z = rng.gen_range(-1.0f64, 1.0);
-    let r = (1.0 - z * z).sqrt();
-    Vector3::new(r * a.cos(), r * a.sin(), z)
-}
-
-fn random_in_hemisphere(rng: &mut impl Rng, normal: &Vector3<f64>) -> Vector3<f64> {
-    let in_unit_sphere = random_vector_in_unit_sphere(rng);
-    if in_unit_sphere.dot(normal) > 0.0 { // In the same hemisphere as the normal
-        in_unit_sphere
-    } else {
-        -in_unit_sphere
-    }
-}
 
 fn ray_color(rng: &mut impl Rng, ray: &Ray, world: &World, depth: i32) -> ppm::Color {
     if depth <= 0 {
         return ppm::Color::new(0.0, 0.0, 0.0);
     }
 
-    if let Some(hit_record) = world.hit(ray, 0.001, f64::INFINITY) {
-        let target = hit_record.location + random_in_hemisphere(rng, &hit_record.normal);
-        let new_ray = Ray::new(hit_record.location, target - hit_record.location);
-        return ray_color(rng, &new_ray, world, depth - 1) * 0.5;
+    if let Some(hit_record) = world.hit(ray, 0.001, std::f64::INFINITY) {
+        if let (Some(reflected), color) = hit_record.material.scatter(rng, ray, &hit_record) {
+            return color.unwrap() * ray_color(rng, &reflected, world, depth - 1);
+        }
+
+        return Color::new(0.0, 0.0, 0.0);
     }
 
     // background
@@ -61,8 +49,10 @@ fn main() {
     let mut world = World::new();
     let mut rand = rand::thread_rng();
 
-    world.add(Sphere { center: Point3::new(0.0, 0.0, -1.0), radius: 0.5 });
-    world.add(Sphere { center: Point3::new(0.0, -100.5, -1.0), radius: 100.0 });
+    world.add(Sphere { center: Point3::new(0.0, 0.0, -1.0), radius: 0.5, material: Material::Lambertian(Color::new(0.7, 0.3, 0.3)) });
+    world.add(Sphere { center: Point3::new(0.0, -100.5, -1.0), radius: 100.0, material: Material::Lambertian(Color::new(0.8, 0.8, 0.0)) });
+    world.add(Sphere { center: Point3::new(1.0, 0.0, -1.0), radius: 0.5, material: Material::Metal(Color::new(0.8, 0.6, 0.2), 1.0) });
+    world.add(Sphere { center: Point3::new(-1.0, 0.0, -1.0), radius: 0.5, material: Material::Metal(Color::new(0.8, 0.8, 0.8), 0.3) });
 
     for y in (0..H).rev() {
         for x in 0..W {
