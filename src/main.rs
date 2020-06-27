@@ -5,8 +5,9 @@ mod world;
 mod camera;
 mod material;
 
+use std::io::Write;
 use std::path::Path;
-use nalgebra::Point3;
+use nalgebra::{Point3, Vector3};
 use rand::Rng;
 
 use crate::ray::Ray;
@@ -44,17 +45,76 @@ const SAMPLES_PER_PIXEL: u32 = 100;
 const MAX_DEPTH: i32 = 100;
 
 fn main() {
-    let camera = Camera::new();
+    let look_from = Point3::new(13.0, 2.0, 3.0);
+    let look_at = Point3::new(0.0, 0.0, 0.0);
+
+    let camera = Camera::new(
+        look_from.clone(),
+        look_at.clone(),
+        Vector3::new(0.0, 1.0, 0.0),
+        20.0, ASPECT_RATIO, 0.1, 10.0);
     let mut ppm = ppm::Writer::new(W, H);
     let mut world = World::new();
     let mut rand = rand::thread_rng();
 
-    world.add(Sphere { center: Point3::new(0.0, 0.0, -1.0), radius: 0.5, material: Material::Lambertian(Color::new(0.7, 0.3, 0.3)) });
-    world.add(Sphere { center: Point3::new(0.0, -100.5, -1.0), radius: 100.0, material: Material::Lambertian(Color::new(0.8, 0.8, 0.0)) });
-    world.add(Sphere { center: Point3::new(1.0, 0.0, -1.0), radius: 0.5, material: Material::Metal(Color::new(0.8, 0.6, 0.2), 1.0) });
-    world.add(Sphere { center: Point3::new(-1.0, 0.0, -1.0), radius: 0.5, material: Material::Metal(Color::new(0.8, 0.8, 0.8), 0.3) });
+    world.add(Sphere {
+        center: Point3::new(0.0, -1000.0, -1.0),
+        radius: 1000.0,
+        material: Material::Lambertian(Color::new(0.5, 0.5, 0.5)),
+    });
+
+    for a in -11..=11 {
+        for b in -11..=11 {
+            let mat_prob = rand.gen_range(0.0, 1.0);
+            let center = Point3::new(
+                a as f64 + 0.9 * rand.gen_range(0.0, 1.0),
+                0.2,
+                b as f64 + 0.9 * rand.gen_range(0.0, 1.0));
+
+            if (&center - Point3::new(4.0, 0.2, 0.0)).norm() > 0.9 {
+                if mat_prob < 0.8 {
+                    world.add(Sphere {
+                        center,
+                        radius: 0.2,
+                        material: Material::Lambertian(Color::new(rand.gen_range(0.0, 1.0), rand.gen_range(0.0, 1.0), rand.gen_range(0.0, 1.0))),
+                    });
+                } else if mat_prob < 0.95 {
+                    world.add(Sphere {
+                        center,
+                        radius: 0.2,
+                        material: Material::Metal(Color::new(
+                            rand.gen_range(0.5, 1.0), rand.gen_range(0.5, 1.0), rand.gen_range(0.5, 1.0)), rand.gen_range(0.0, 0.5)),
+                    });
+                } else {
+                    world.add(Sphere {
+                        center,
+                        radius: 0.2,
+                        material: Material::Dielectric(1.5),
+                    });
+                }
+            }
+        }
+    }
+
+    world.add(Sphere {
+        center: Point3::new(0.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Material::Dielectric(1.5),
+    });
+    world.add(Sphere {
+        center: Point3::new(-4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Material::Lambertian(Color::new(0.4, 0.2, 0.1)),
+    });
+    world.add(Sphere {
+        center: Point3::new(4.0, 1.0, 0.0),
+        radius: 1.0,
+        material: Material::Metal(Color::new(0.7, 0.6, 0.5), 0.0),
+    });
 
     for y in (0..H).rev() {
+        println!("generating px y {}", H - 1 - y);
+        std::io::stdout().flush().ok();
         for x in 0..W {
             let mut color = Color::new(0.0, 0.0, 0.0);
             for _ in 0..SAMPLES_PER_PIXEL {
